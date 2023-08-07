@@ -33,6 +33,7 @@ Restrictions:
 - There should be 7 questions and 4 answer options
 - In the answers there should be only 1 correct answer and 3 incorrect ones
 - Questions and answers should be according to best practices for knowledge testing
+- Correct answer should be in a different order in each question
 	`
 
 	messages := []openai.ChatCompletionMessage{
