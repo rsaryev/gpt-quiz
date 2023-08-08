@@ -73,41 +73,41 @@ func start(context quiz.Context) error {
 			s.Start()
 			wg.Wait()
 			s.Stop()
-		}
+		} else {
+			question := context.Queue.Front().Value.(quiz.Question)
+			context.Queue.Remove(context.Queue.Front())
+			var options []string
+			for _, option := range question.Options {
+				options = append(options, option.Title)
+			}
 
-		question := context.Queue.Front().Value.(quiz.Question)
-		context.Queue.Remove(context.Queue.Front())
-		var options []string
-		for _, option := range question.Options {
-			options = append(options, option.Title)
-		}
+			prompt := promptui.Select{
+				Label: fmt.Sprintf(question.Title),
+				Items: append(options, "Skip"),
+				Templates: &promptui.SelectTemplates{
+					Active:   `> {{ . | cyan }}`,
+					Inactive: `  {{ . | cyan }}`,
+					Selected: `{{ "` + question.Title + `" }}: {{ . | green }}`,
+				},
+				HideHelp: true,
+			}
 
-		prompt := promptui.Select{
-			Label: fmt.Sprintf(question.Title),
-			Items: append(options, "Skip"),
-			Templates: &promptui.SelectTemplates{
-				Active:   `> {{ . | cyan }}`,
-				Inactive: `  {{ . | cyan }}`,
-				Selected: `{{ "` + question.Title + `" }}: {{ . | green }}`,
-			},
-			HideHelp: true,
-		}
+			_, option, err := prompt.Run()
+			if err != nil {
+				return err
+			}
 
-		_, option, err := prompt.Run()
-		if err != nil {
-			return err
-		}
+			if option == "Skip" {
+				fmt.Println(color.YellowString(">") + " " + color.GreenString(getCorrectAnswer(question)))
+				continue
+			}
 
-		if option == "Skip" {
-			fmt.Println(color.YellowString(">") + " " + color.GreenString(getCorrectAnswer(question)))
-			continue
-		}
+			answer := getCorrectAnswer(question)
+			if option != answer {
+				fmt.Println(color.RedString(">") + " " + color.GreenString(answer))
+			}
 
-		answer := getCorrectAnswer(question)
-		if option != answer {
-			fmt.Println(color.RedString(">") + " " + color.GreenString(answer))
+			fmt.Println("")
 		}
-
-		fmt.Println("")
 	}
 }
