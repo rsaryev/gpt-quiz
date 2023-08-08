@@ -31,7 +31,7 @@ func createQuestion(ctx *Context) (openai.ChatCompletionResponse, error) {
 	prompt := `Create questions and answers based on text.` + ctx.Content + `
 Restrictions:
 - There should be 7 questions and 4 answer options
-- In the answers there should be only 1 correct answer and 3 incorrect ones
+- In the answers there should be only 1 correct answer and 3 incorrect ones (no more and no less)
 - Questions and answers should be according to best practices for knowledge testing
 - Correct answer should be in a different order in each question
 	`
