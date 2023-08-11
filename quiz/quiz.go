@@ -3,8 +3,9 @@ package quiz
 import (
 	"container/list"
 	"encoding/json"
-	"github.com/sashabaranov/go-openai"
 	internal_openai "gpt-quiz/internal/openai"
+
+	"github.com/sashabaranov/go-openai"
 )
 
 type Context struct {
@@ -87,7 +88,11 @@ func CreateQuestions(context *Context) error {
 		return nil
 	}
 
-	data, _ := getQuizData(context)
+	data, err := getQuizData(context)
+	if err != nil {
+		panic(err)
+	}
+
 	for _, question := range data.Questions {
 		context.Queue.PushBack(question)
 	}
