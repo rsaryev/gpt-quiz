@@ -2,18 +2,15 @@ package cmd
 
 import (
 	"fmt"
-	"sync"
-	"time"
-
 	"github.com/briandowns/spinner"
 	"github.com/fatih/color"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 	"gpt-quiz/quiz"
+	"time"
 )
 
 func Start() *cobra.Command {
-
 	var cmd = &cobra.Command{
 		Use:     "start",
 		Aliases: []string{"s"},
@@ -49,65 +46,68 @@ func getCorrectAnswer(question quiz.Question) string {
 	return "No found correct answer"
 }
 
-func start(context quiz.Context) error {
-	var wg sync.WaitGroup
-	var mu sync.Mutex
-	isRunning := false
+func runQuestions(question quiz.Question) {
+	options := make([]string, len(question.Options))
 
+	for i, option := range question.Options {
+		options[i] = option.Title
+	}
+
+	prompt := promptui.Select{
+		Label: fmt.Sprintf(question.Title),
+		Items: options,
+		Templates: &promptui.SelectTemplates{
+			Active:   `> {{ . | cyan }}`,
+			Inactive: `  {{ . | cyan }}`,
+			Selected: `{{ "` + question.Title + `" }}: {{ . | green }}`,
+		},
+		HideHelp: true,
+	}
+
+	_, option, err := prompt.Run()
+	if err != nil {
+		panic(err)
+	}
+
+	answer := getCorrectAnswer(question)
+	if option != answer {
+		fmt.Println(color.RedString(">") + " " + color.GreenString(answer))
+	}
+
+	fmt.Println("")
+}
+
+func loopLoadQuestions(context quiz.Context, ch chan quiz.Question) {
 	for {
-		if !isRunning {
-			isRunning = true
-			wg.Add(1)
-			go func() {
-				mu.Lock()
-				quiz.CreateQuestions(&context)
-				isRunning = false
-				wg.Done()
-				mu.Unlock()
-			}()
+		s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+
+		if len(ch) == 0 {
+			s.Suffix = " Loading questions"
+			s.Start()
 		}
 
-		if context.Queue == nil || context.Queue.Len() == 0 {
-			s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
-			s.Suffix = " Loading..."
-			s.Start()
-			wg.Wait()
-			s.Stop()
-		} else {
-			question := context.Queue.Front().Value.(quiz.Question)
-			context.Queue.Remove(context.Queue.Front())
-			var options []string
-			for _, option := range question.Options {
-				options = append(options, option.Title)
-			}
+		q, err := quiz.GetQuestions(&context)
+		if err != nil {
+			panic(err)
+		}
 
-			prompt := promptui.Select{
-				Label: fmt.Sprintf(question.Title),
-				Items: append(options, "Skip"),
-				Templates: &promptui.SelectTemplates{
-					Active:   `> {{ . | cyan }}`,
-					Inactive: `  {{ . | cyan }}`,
-					Selected: `{{ "` + question.Title + `" }}: {{ . | green }}`,
-				},
-				HideHelp: true,
-			}
-
-			_, option, err := prompt.Run()
-			if err != nil {
-				return err
-			}
-
-			if option == "Skip" {
-				fmt.Println(color.YellowString(">") + " " + color.GreenString(getCorrectAnswer(question)))
+		for _, question := range q.Questions {
+			if question.Title == "" {
 				continue
 			}
-
-			answer := getCorrectAnswer(question)
-			if option != answer {
-				fmt.Println(color.RedString(">") + " " + color.GreenString(answer))
-			}
-
-			fmt.Println("")
+			ch <- question
 		}
+		s.Stop()
 	}
+}
+
+func start(context quiz.Context) error {
+	ch := make(chan quiz.Question, 30)
+
+	go loopLoadQuestions(context, ch)
+	for question := range ch {
+		runQuestions(question)
+	}
+
+	return nil
 }

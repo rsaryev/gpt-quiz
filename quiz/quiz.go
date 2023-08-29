@@ -1,17 +1,16 @@
 package quiz
 
 import (
-	"container/list"
 	"encoding/json"
-	internal_openai "gpt-quiz/internal/openai"
-
+	"fmt"
 	"github.com/sashabaranov/go-openai"
+	internal_openai "gpt-quiz/internal/openai"
+	"sync"
 )
 
 type Context struct {
-	Content   string
-	Questions []Question
-	Queue     *list.List
+	Content string
+	Mux     *sync.Mutex
 }
 
 type Option struct {
@@ -29,12 +28,11 @@ type Data struct {
 }
 
 func createQuestion(ctx *Context) (openai.ChatCompletionResponse, error) {
-	prompt := `Create questions and answers based on text.` + ctx.Content + `
+	prompt := fmt.Sprintf(`Create questions and answers based on text: %s
 Restrictions:
-- There should be 7 questions and 4 answer options
-- In the answers there should be only 1 correct answer and 3 incorrect ones (no more and no less)
-- Questions and answers should be according to best practices for knowledge testing
-	`
+- There should be 10 questions and 4 answer options
+- There should be only 1 correct answer and 3 incorrect ones (no more and no less)
+- Questions and answers should follow best practices for knowledge testing`, ctx.Content)
 
 	messages := []openai.ChatCompletionMessage{
 		{
@@ -59,11 +57,33 @@ Restrictions:
 	return response, err
 }
 
-func getQuizData(context *Context) (Data, error) {
-	excludeQuestions := make([]string, 0)
-	for _, question := range context.Questions {
-		excludeQuestions = append(excludeQuestions, question.Title)
+/**
+ * Filter questions by the following criteria (see createQuestion function prompt)
+ */
+func filterQuestions(questions []Question) []Question {
+	var filtered []Question
+	for _, question := range questions {
+		if len(question.Options) != 4 {
+			continue
+		}
+
+		correctAnswers := 0
+		for _, option := range question.Options {
+			if option.IsCorrect {
+				correctAnswers++
+			}
+		}
+
+		if correctAnswers != 1 {
+			continue
+		}
+
+		filtered = append(filtered, question)
 	}
+
+	return filtered
+}
+func GetQuestions(context *Context) (Data, error) {
 	response, err := createQuestion(context)
 	if err != nil {
 		return Data{}, err
@@ -77,26 +97,7 @@ func getQuizData(context *Context) (Data, error) {
 		return Data{}, err
 	}
 
+	quizData.Questions = filterQuestions(quizData.Questions)
+
 	return quizData, nil
-}
-
-func CreateQuestions(context *Context) error {
-	if context.Queue == nil {
-		context.Queue = list.New()
-	}
-	if context.Queue.Len() > 3 {
-		return nil
-	}
-
-	data, err := getQuizData(context)
-	if err != nil {
-		panic(err)
-	}
-
-	for _, question := range data.Questions {
-		context.Queue.PushBack(question)
-	}
-
-	context.Questions = append(context.Questions, data.Questions...)
-	return nil
 }
