@@ -5,11 +5,11 @@
 class GptQuiz < Formula
   desc ""
   homepage "https://github.com/rsaryev/gpt-quiz"
-  version "0.0.2"
+  version "0.0.3"
 
   on_macos do
-    url "https://github.com/rsaryev/gpt-quiz/releases/download/0.0.2/gpt-quiz_0.0.2_darwin_all.tar.gz"
-    sha256 "465e0cbaefbaa66c5b8c2df125555bfb6fe590051b291f26f593d6d51e841d1d"
+    url "https://github.com/rsaryev/gpt-quiz/releases/download/0.0.3/gpt-quiz_0.0.3_darwin_all.tar.gz"
+    sha256 "0b1f65b5e015d984ba5df457de06dcdf6cd7e764d079b72cc7e78dc90f4e2cbb"
 
     def install
       bin.install "gpt-quiz"
@@ -18,16 +18,16 @@ class GptQuiz < Formula
 
   on_linux do
     if Hardware::CPU.arm? && Hardware::CPU.is_64_bit?
-      url "https://github.com/rsaryev/gpt-quiz/releases/download/0.0.2/gpt-quiz_0.0.2_linux_arm64.tar.gz"
-      sha256 "f7bef0e875a18432b977b2942b24444f784eab20d8b96bdbd218e69ea13b722f"
+      url "https://github.com/rsaryev/gpt-quiz/releases/download/0.0.3/gpt-quiz_0.0.3_linux_arm64.tar.gz"
+      sha256 "649a5662567bb5ea7e19a227d0b671073dfef4f8bc03d79372e1a6eb51953329"
 
       def install
         bin.install "rsaryev"
       end
     end
     if Hardware::CPU.intel?
-      url "https://github.com/rsaryev/gpt-quiz/releases/download/0.0.2/gpt-quiz_0.0.2_linux_amd64.tar.gz"
-      sha256 "bbb9395497992765af689e466b2c4fc5919d80df4a381845b36e62649d33dc52"
+      url "https://github.com/rsaryev/gpt-quiz/releases/download/0.0.3/gpt-quiz_0.0.3_linux_amd64.tar.gz"
+      sha256 "60e83862a7fc6a4d69285d9a94f33f8601ac6d604be916fdcea4775689fc2baf"
 
       def install
         bin.install "rsaryev"
